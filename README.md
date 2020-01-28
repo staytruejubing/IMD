@@ -1,7 +1,7 @@
 ####################################################
 # Employment
 ####################################################
-#Last updated: 01/27/2020
+#Last updated: 01/28/2020
 #Created by: Jubing Ge
 #Data source: ACS 2010-2017
 #
@@ -57,7 +57,6 @@ censustractselect <- function(df) {
   df<-subset(df, select = c("GEO.id2", "HC01_EST_VC01",
                             "HC02_EST_VC01","HC03_EST_VC01",
                             "HC04_EST_VC01")) 	
-  # convert all numerical data to numeric data type
   df[, 'HC01_EST_VC01':= lapply(df[, 'HC01_EST_VC01'], as.numeric)] 
   df[, 'HC02_EST_VC01':= lapply(df[, 'HC02_EST_VC01'], as.numeric)]
   df[, 'HC03_EST_VC01':= lapply(df[, 'HC03_EST_VC01'], as.numeric)]
@@ -79,6 +78,7 @@ for (i in 2:nfile)
   all <- rbind(all, olist[[i]])
 }
 
+#Change variable names
 setnames(all, "HC01_EST_VC01", "Population")
 setnames(all, "HC02_EST_VC01", "Labor_Force_Participation_Rate")
 setnames(all, "HC03_EST_VC01", "Employment/Population_Ratio")
