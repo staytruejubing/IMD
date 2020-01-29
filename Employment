@@ -28,10 +28,10 @@ library(ggplot)
 # S2301 Employment Status
 
 # Variable of interest -
-##  - Population 16 years and over-- HC01_EST_VC01
-##  - Labor Force Participation Rate 16 years and over-- HC02_EST_VC01
-##  - Employment/Population Ratio 16 years and over-- HC03_EST_VC01
-##  - Unemployment Population 16 years and over--HC04_EST_VC01
+##  - Population 16 years and over-- S2301_C01_001E
+##  - In Labor Force 16 years and over-- S2301_C02_001E
+##  - Employed 16 years and over-- S2301_C03_001E
+##  - Unemployment Rate 16 years and over--S2301_C04_001E
 
 rm(list=ls())
 # Set the working directory
@@ -40,30 +40,35 @@ setwd("~/Desktop/Class/2020W/Policy Lab/Data/S2301_2010_2017")
 # Read data
 # initialize lists 
 olist <- list(NULL)
-nfile = 8
+nfile = 9
 length(olist)<-nfile
 
 # start to read data
 for (i in 1:nfile)
 {
-  olist[[i]]<- fread(paste("ACS_", as.character(i+9), "_5YR_S2301_with_ann.csv", sep=""))
+  olist[[i]]<- fread(paste("ACSST5Y20", as.character(i+9), 
+                           ".S2301_data_with_overlays_2020-01-28T140645.csv", sep=""))
 }
+
+
+
+
 
 # Read Geo ID data
 Geocode <- read.csv("Geocode.csv")
 
 censustractselect <- function(df) {
-  df<-subset(df, GEO.id2 %in% Geocode$censustract)
-  df<-subset(df, select = c("GEO.id2", "HC01_EST_VC01",
-                            "HC02_EST_VC01","HC03_EST_VC01",
-                            "HC04_EST_VC01")) 	
-  df[, 'HC01_EST_VC01':= lapply(df[, 'HC01_EST_VC01'], as.numeric)] 
-  df[, 'HC02_EST_VC01':= lapply(df[, 'HC02_EST_VC01'], as.numeric)]
-  df[, 'HC03_EST_VC01':= lapply(df[, 'HC03_EST_VC01'], as.numeric)]
-  df[, 'HC04_EST_VC01':= lapply(df[, 'HC04_EST_VC01'], as.numeric)]
-  df[ , Total_laborforcerate := unlist(df[, 'HC01_EST_VC01'])*unlist(df[, 'HC02_EST_VC01'])/100 ]
-  df[ , Total_employmentrate := unlist(df[, 'HC01_EST_VC01'])*unlist(df[, 'HC03_EST_VC01'])/100 ]
-  df[ , Total_unemploymentrate := unlist(df[, 'HC01_EST_VC01'])*unlist(df[, 'HC04_EST_VC01'])/100 ]
+  df<-subset(df, GEO_ID %in% Geocode$censustract)
+  df<-subset(df, select = c("GEO_ID", "S2301_C01_001E",
+                            "S2301_C02_001E","S2301_C03_001E",
+                            "S2301_C04_001E")) 	
+  df[, 'S2301_C01_001E':= lapply(df[, 'S2301_C01_001E'], as.numeric)] 
+  df[, 'S2301_C02_001E':= lapply(df[, 'S2301_C02_001E'], as.numeric)]
+  df[, 'S2301_C03_001E':= lapply(df[, 'S2301_C03_001E'], as.numeric)]
+  df[, 'S2301_C04_001E':= lapply(df[, 'S2301_C04_001E'], as.numeric)]
+  df[ , Total_laborforcerate := unlist(df[, 'S2301_C01_001E'])*unlist(df[, 'S2301_C02_001E'])/100 ]
+  df[ , Total_employmentrate := unlist(df[, 'S2301_C01_001E'])*unlist(df[, 'S2301_C03_001E'])/100 ]
+  df[ , Total_unemploymentrate := unlist(df[, 'S2301_C01_001E'])*unlist(df[, 'S2301_C04_001E'])/100 ]
 }
 
 for (i in 1:nfile) 
@@ -79,10 +84,10 @@ for (i in 2:nfile)
 }
 
 #Change variable names
-setnames(all, "HC01_EST_VC01", "Population")
-setnames(all, "HC02_EST_VC01", "Labor_Force_Participation_Rate")
-setnames(all, "HC03_EST_VC01", "Employment/Population_Ratio")
-setnames(all, "HC04_EST_VC01", "Unemployment_Population")
+setnames(all, "S2301_C01_001E", "Population")
+setnames(all, "S2301_C02_001E", "Labor_Force_Participation_Rate")
+setnames(all, "S2301_C03_001E", "Employment/Population_Ratio")
+setnames(all, "S2301_C04_001E", "Unemployment_Population")
 
 ppl_o16 <- list(data.table())
 for (i in 1:nfile)
@@ -94,3 +99,11 @@ for (i in 1:nfile)
 Employment<-all
 rm(list=c("all","b","Geocode","olist","ppl_o16"))
 rm(i,nfile)
+
+#Get employment data table
+aggregate(cbind(
+  Employment$Population, Employment$Total_laborforcerate,
+  Employment$Total_unemploymentrate), 
+  by=list(Category=Employment$year), FUN=sum)
+
+
