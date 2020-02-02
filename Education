@@ -1,0 +1,111 @@
+####################################################
+# Education
+####################################################
+#Last updated: 01/31/2020
+#Created by: Jubing Ge
+#Data source: ACS 2010-2018
+#
+####################################################
+# 1. Load libraries,identify variables
+# 2. Define variables, merge datasets 
+####################################################
+
+# 1. Load libraries
+
+
+rm(list=ls())
+#
+#library
+library(tidyverse)
+library(dplyr)
+library(data.table)
+library(ggplot2)
+library(bit64)
+
+# 2. Define variables, merge data sets
+
+# Table codes of interest -
+# https://censusreporter.org/topics/table-codes/
+# S2301 Employment Status
+
+# Variable of interest -
+##  - Population 18 to 24 years -- S1501_C01_001E 
+##  - (18-24) Bachelor’s degree or higher -- S1501_C01_005E 
+##  - Population 25 years and over --  S1501_C01_006E 
+##  - (25+) Bachelor’s degree S1501_C01_012E 
+##  - (25+) Graduate or professional degree S1501_C01_013E
+##  - (25+) Percent bachelor's degree or higher S1501_C01_015E
+
+
+rm(list=ls())
+# Set the working directory
+setwd("~/Desktop/Class/2020W/Policy Lab/Data/S1501_2010_2018")
+
+# Read data
+# initialize lists 
+olist <- list(NULL)
+nfile = 9
+length(olist)<-nfile
+
+# start to read data
+for (i in 1:nfile)
+{
+  olist[[i]]<- fread(paste("ACSST5Y20", as.character(i+9), 
+                           ".S1501_data_with_overlays_2020-02-01T145503.csv", sep=""))
+}
+
+
+# Read Geo ID data
+Geocode <- read.csv("Geocode.csv")
+
+censustractselect <- function(df) {
+  df<-subset(df, GEO_ID %in% Geocode$censustract)
+  df<-subset(df, select = c("GEO_ID", "S1501_C01_001E","S1501_C01_005E",
+                            "S1501_C01_006E","S1501_C01_012E",
+                            "S1501_C01_013E","S1501_C01_015E")) 	
+  ## Change GEO_ID from 20 digits to 11 digits
+  df[, 'GEO_ID' :=  substr(unlist(df[, 'GEO_ID']),10,20)]
+}
+
+for (i in 1:nfile) 
+{
+  olist[[i]]<-censustractselect(olist[[i]])
+  olist[[i]]$year<-2009+i
+}
+
+all <- olist[[1]]
+for (i in 2:nfile)
+{
+  all <- rbind(all, olist[[i]])
+}
+
+ppl_o16 <- list(data.table())
+for (i in 1:nfile)
+{
+  b = olist[[i]]
+  ppl_o16[, c(as.character(i+2009)) :=  b[, 1]]
+}
+
+# as.numeric
+numeric<- function(var) {
+  all[, var:= lapply(all[, var], as.numeric)] 
+}
+#Percentage
+
+# Change Variable Names
+names(all)[2:7] <- c("Population 18 to 24 years","(18-24) Bachelor’s degree or higher",
+                     "Population 25 years and over","(25+) Bachelor’s degree",
+                     "(25+) Graduate or professional degree",
+                     "(25+) Percent bachelor's degree or higher")
+
+# Clean Up
+Education<-all
+rm(list=c("all","b","Geocode","olist","ppl_o16"))
+rm(i,nfile)
+Education <- unique( Education[ , 1:8] )
+
+
+#
+write.csv(Education,'Education.csv')
+
+
